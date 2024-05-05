@@ -1,0 +1,65 @@
+version: "3"
+
+services:
+  trino:
+    image: trinodb/trino
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./trino/catalog:/etc/trino/catalog
+    networks:
+      - will-network
+
+  minio:
+    container_name: minio
+    image: quay.io/minio/minio
+    command: server /data --console-address ":9001"
+    restart: always
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ./minio/data:/data
+    environment:
+      MINIO_ROOT_USER: minio_user
+      MINIO_ROOT_PASSWORD: minio_password
+      #MINIO_ACCESS_KEY: minio_access_key
+      #MINIO_SECRET_KEY: minio_secret_key
+    networks:
+      - will-network
+
+  postgres:
+    image: postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: hive_admin
+      POSTGRES_USER: hive
+      POSTGRES_DB: metastore_db
+    volumes:
+      - ./postgres/data:/var/lib/postgresql/data
+    networks:
+      - will-network
+
+  hive-metastore:
+    container_name: hive-metastore
+    build: ./hive
+    restart: always
+    ports:
+      - "9083:9083"
+    volumes:
+      - ./hive/conf/metastore-site.xml:/opt/hive/conf/metastore-site.xml
+    environment:
+      SERVICE_NAME: metastore
+      DB_DRIVER: postgres
+      SERVICE_OPTS: "-Djavax.jdo.option.ConnectionDriverName=org.postgresql.Driver -Djavax.jdo.option.ConnectionURL=jdbc:postgresql://postgres:5432/metastore_db -Djavax.jdo.option.ConnectionUserName=hive -Djavax.jdo.option.ConnectionPassword=hive_admin"
+    networks:
+      - will-network
+    depends_on:
+      - postgres
+
+
+networks:
+  will-network:
+    driver: bridge
