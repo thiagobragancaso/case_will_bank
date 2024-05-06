@@ -7,20 +7,20 @@ AS
 SELECT
 	CAST(DATE_FORMAT("date", '%Y%m%d') AS BIGINT) sk_date
 ,	"date"
-,	YEAR("date") "year"
-,	QUARTER("date") "quarter"
-,	MONTH("date") "month"
+,	CAST(YEAR("date") AS INTEGER) "year"
+,	CAST(QUARTER("date") AS INTEGER) "quarter"
+,	CAST(MONTH("date") AS INTEGER) "month"
 ,	DATE_FORMAT("date", '%M') month_name
-,	WEEK("date") "week"
-,	DAY("date") "day"
-,	DAY_OF_WEEK("date") "day_of_week"
+,	CAST(WEEK("date") AS INTEGER) "week"
+,	CAST(DAY("date") AS INTEGER) "day"
+,	CAST(DAY_OF_WEEK("date") AS INTEGER) "day_of_week"
 ,	DATE_FORMAT("date", '%W') day_name
 ,	CAST(DATE_FORMAT("date", '%Y%m') AS INTEGER) month_year
 FROM UNNEST(SEQUENCE(DATE '2023-01-01', CURRENT_DATE, INTERVAL '1' DAY)) t ("date");
 
 
 -- Customer Dimension
-CREATE TABLE minio.gold.dim_customer
+CREATE TABLE minio.gold.dim_customer_sensitive
 COMMENT 'Customer Dimension Table'
 WITH (format = 'parquet')
 AS
@@ -31,6 +31,20 @@ SELECT
 ,	uf
 ,	street_name
 ,	birth_date
+,	entry_date
+FROM minio.silver.customer_sensitive;
+
+CREATE TABLE minio.gold.dim_customer
+COMMENT 'Customer Dimension Table'
+WITH (format = 'parquet')
+AS
+SELECT
+	customer_key AS sk_customer
+,	hash_customer_name
+,	uf_name AS state
+,	uf
+,	birth_year
+,	birth_month
 ,	entry_date
 FROM minio.silver.customer;
 
@@ -77,6 +91,6 @@ SELECT
 	dim.customer_name
 ,	ROUND(SUM(vl_transaction), 2) total_value_transaction
 FROM minio.gold.ft_transaction fct
-INNER JOIN minio.gold.dim_customer dim
+INNER JOIN minio.gold.dim_customer_sensitive dim
 	ON fct.sk_customer = dim.sk_customer
 GROUP BY 1; 

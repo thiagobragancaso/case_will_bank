@@ -44,10 +44,26 @@ WITH (format = 'parquet')
 AS
 SELECT
 	surrogate_key customer_key
+,	hash_customer_name
+,	uf_name
+,	uf
+,	birth_year
+,	birth_month
+,	entry_date
+FROM minio.bronze.customer;
+
+
+-- CUSTOMER SENSITIVE
+CREATE TABLE minio.silver.customer_sensitive
+COMMENT 'Table with all customers (sensitive data).'
+WITH (format = 'parquet')
+AS
+SELECT
+	surrogate_key customer_key
 ,	full_name
 ,	uf_name
 ,	uf
 ,	street_name
 ,	birth_date
 ,	entry_date
-FROM minio.bronze.customer;
+FROM minio.bronze.customer_sensitive;

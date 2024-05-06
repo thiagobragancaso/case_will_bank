@@ -27,9 +27,9 @@ SELECT DISTINCT
 	CAST(dt_month AS INTEGER) dt_month
 FROM minio.raw.core_pix;
 
--- Customer
-CREATE TABLE minio.bronze.customer
-COMMENT 'Table customer with correct data types'
+-- Customer Sensitive
+CREATE TABLE minio.bronze.customer_sensitive
+COMMENT 'Table customer with correct data types and sensitive data'
 WITH (format = 'parquet')
 AS
 SELECT
@@ -39,6 +39,21 @@ SELECT
 	uf,
 	street_name,
 	CAST(birth_date AS DATE) birth_date,
+	CAST(entry_date AS DATE) entry_date
+FROM minio.raw.customer;
+
+-- Customer
+CREATE TABLE minio.bronze.customer
+COMMENT 'Table customer with correct data types and data masking'
+WITH (format = 'parquet')
+AS
+SELECT
+	CAST(surrogate_key AS BIGINT) surrogate_key,
+	TO_HEX(MD5(TO_UTF8(full_name))) hash_customer_name,
+	uf_name,
+	uf,
+	CAST(YEAR(CAST(birth_date AS DATE)) AS INTEGER) birth_year,
+	CAST(MONTH(CAST(birth_date AS DATE)) AS INTEGER) birth_month,
 	CAST(entry_date AS DATE) entry_date
 FROM minio.raw.customer;
 
